@@ -21,9 +21,16 @@ router.get('/:id', async (req, res) => {
 
 // GET /api/courses/mine - by instructor email
 router.get('/mine', async (req, res) => {
-  if (!req.user?.email) return res.status(401).json({ message: 'Unauthorized' })
-  const courses = await Course.find({ 'instructor.email': req.user.email }).sort({ createdAt: -1 })
-  res.json(courses)
+  try {
+    if (!req.user?.email) {
+      return res.status(401).json({ message: 'Unauthorized - Please login to view your courses' })
+    }
+    const courses = await Course.find({ 'instructor.email': req.user.email }).sort({ createdAt: -1 })
+    res.json(courses)
+  } catch (error) {
+    console.error('Error fetching user courses:', error)
+    res.status(500).json({ message: 'Failed to load courses' })
+  }
 })
 
 // POST /api/courses
