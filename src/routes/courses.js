@@ -1,5 +1,7 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import Course from '../models/Course.js'
+import Enrollment from '../models/Enrollment.js'
 
 const router = Router()
 
@@ -10,13 +12,6 @@ router.get('/', async (req, res) => {
   if (category) query.category = category
   const courses = await Course.find(query).sort({ createdAt: -1 }).limit(60)
   res.json({ courses })
-})
-
-// GET /api/courses/:id
-router.get('/:id', async (req, res) => {
-  const course = await Course.findById(req.params.id)
-  if (!course) return res.status(404).json({ message: 'Not found' })
-  res.json(course)
 })
 
 // GET /api/courses/mine - by instructor email
@@ -31,6 +26,70 @@ router.get('/mine', async (req, res) => {
     console.error('Error fetching user courses:', error)
     res.status(500).json({ message: 'Failed to load courses' })
   }
+})
+
+// GET /api/courses/:id
+router.get('/:id', async (req, res) => {
+  const { id } = req.params
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ message: 'Invalid course ID' })
+  }
+  const course = await Course.findById(id)
+  if (!course) return res.status(404).json({ message: 'Not found' })
+  res.json(course)
+})
+
+// GET /api/courses/:id/ratings
+router.get('/:id/ratings', async (req, res) => {
+  const { id } = req.params
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ message: 'Invalid course ID' })
+  }
+  const matchStage = {
+    $match: {
+      course: new mongoose.Types.ObjectId(id),
+      rating: { $exists: true, $ne: null }
+    }
+  }
+  const summary = await Enrollment.aggregate([
+    matchStage,
+    {
+      $group: {
+        _id: '$course',
+        average: { $avg: '$rating' },
+        count: { $sum: 1 }
+      }
+    }
+  ])
+  const breakdownRaw = await Enrollment.aggregate([
+    matchStage,
+    {
+      $group: {
+        _id: '$rating',
+        count: { $sum: 1 }
+      }
+    }
+  ])
+  const reviews = await Enrollment.find({
+    course: id,
+    rating: { $exists: true, $ne: null },
+    review: { $ne: '' }
+  })
+    .sort({ updatedAt: -1 })
+    .limit(6)
+    .select('rating review userEmail updatedAt')
+
+  const breakdown = breakdownRaw.reduce((acc, item) => {
+    acc[item._id] = item.count
+    return acc
+  }, {})
+
+  res.json({
+    average: Number(summary[0]?.average?.toFixed(2)) || 0,
+    count: summary[0]?.count || 0,
+    breakdown,
+    reviews
+  })
 })
 
 // POST /api/courses

@@ -8,6 +8,8 @@ const CourseSchema = new mongoose.Schema({
   category: { type: String, required: true, index: true },
   description: { type: String, required: true },
   isFeatured: { type: Boolean, default: false },
+  ratingAverage: { type: Number, default: 0 },
+  ratingCount: { type: Number, default: 0 },
   instructor: {
     name: String,
     email: { type: String, index: true },

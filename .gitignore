@@ -8,22 +8,5 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
-
-# Logs
-logs
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Build
-dist/
-build/
+.vercel/*
 
