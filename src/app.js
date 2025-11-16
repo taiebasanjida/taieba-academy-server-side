@@ -6,6 +6,7 @@ import mongoose from 'mongoose'
 import coursesRouter from './routes/courses.js'
 import enrollmentsRouter from './routes/enrollments.js'
 import { authMiddleware } from './middleware/auth.js'
+import Enrollment from './models/Enrollment.js'
 
 dotenv.config()
 
@@ -57,25 +58,8 @@ export async function ensureDatabase() {
   }
 
   try {
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 4000, // 4 seconds to select server (increased for Atlas free tier)
-      socketTimeoutMS: 8000, // 8 seconds socket timeout
-      connectTimeoutMS: 4000, // 4 seconds connection timeout (increased)
-      maxPoolSize: 5, // Reduce pool size for faster initialization
-      minPoolSize: 0, // No min pool - don't pre-connect
-      // Reduce retry attempts for faster failure
-      retryWrites: true,
-      retryReads: true,
-      // Disable auto-reconnect to fail faster
-      bufferMaxEntries: 0,
-      bufferCommands: false,
-      // Optimize for serverless/cloud
-      heartbeatFrequencyMS: 10000,
-      retryReads: true,
-      directConnection: false, // Use replica set
-    })
+    // Use default Mongoose connection options (no legacy driver options)
+    await mongoose.connect(MONGO_URI)
     isDBConnected = true
     console.log(' MongoDB connected successfully')
   } catch (error) {
@@ -96,6 +80,19 @@ app.get('/', (_req, res) => {
 })
 
 app.use('/api/courses', authMiddleware.optional, coursesRouter)
+
+// GET /api/enrollments - No auth required for testing (MUST be before app.use)
+app.get('/api/enrollments', async (req, res) => {
+  try {
+    const list = await Enrollment.find().populate('course').sort({ createdAt: -1 }).limit(100)
+    res.json({ enrollments: list, count: list.length })
+  } catch (error) {
+    console.error('Error fetching enrollments:', error)
+    res.status(500).json({ message: 'Failed to load enrollments' })
+  }
+})
+
+// All other enrollment routes require authentication
 app.use('/api/enrollments', authMiddleware.required, enrollmentsRouter)
 
 export default app
