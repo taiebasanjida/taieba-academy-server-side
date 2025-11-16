@@ -27,13 +27,27 @@ let isDBConnected = false
 
 export async function ensureDatabase() {
   if (isDBConnected) return
+  if (mongoose.connection.readyState === 1) {
+    isDBConnected = true
+    return
+  }
 
-  await mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  isDBConnected = true
-  console.log(' MongoDB connected successfully')
+  try {
+    await mongoose.connect(MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000, // 5 seconds to select server
+      socketTimeoutMS: 10000, // 10 seconds socket timeout
+      connectTimeoutMS: 5000, // 5 seconds connection timeout
+      maxPoolSize: 10,
+      minPoolSize: 1,
+    })
+    isDBConnected = true
+    console.log(' MongoDB connected successfully')
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error.message)
+    throw error
+  }
 }
 
 app.get('/', (_req, res) => {
