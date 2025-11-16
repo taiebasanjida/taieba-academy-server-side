@@ -28,6 +28,17 @@ router.get('/mine', async (req, res) => {
   }
 })
 
+// GET /api/courses/count - মোট কতগুলো course আছে তা দেখার জন্য
+router.get('/count', async (_req, res) => {
+  try {
+    const count = await Course.countDocuments()
+    res.json({ count })
+  } catch (error) {
+    console.error('Error counting courses:', error)
+    res.status(500).json({ message: 'Failed to count courses' })
+  }
+})
+
 // GET /api/courses/:id
 router.get('/:id', async (req, res) => {
   const { id } = req.params
