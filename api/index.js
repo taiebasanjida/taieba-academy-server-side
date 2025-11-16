@@ -6,7 +6,17 @@ let handler = null
 
 export default async function (req, res) {
   try {
-    // Initialize serverless handler first (fast)
+    // Fast path: Root endpoint doesn't need database or handler initialization
+    if (req.url === '/' && req.method === 'GET') {
+      res.setHeader('Content-Type', 'application/json')
+      return res.status(200).json({ 
+        ok: true, 
+        name: 'Taieba Academy API',
+        message: 'API is running'
+      })
+    }
+    
+    // Initialize serverless handler for other routes
     if (!handler) {
       console.log('Initializing serverless handler...')
       handler = serverless(app, {
@@ -15,11 +25,8 @@ export default async function (req, res) {
       console.log('Serverless handler initialized')
     }
     
-    // Lazy load database connection only for API routes (not root /)
-    // Root endpoint doesn't need database, so skip for faster response
-    const needsDatabase = req.url.startsWith('/api/') && req.url !== '/'
-    
-    if (needsDatabase && !dbInitialized) {
+    // Lazy load database connection only for API routes
+    if (req.url.startsWith('/api/') && !dbInitialized) {
       console.log('Initializing database connection for:', req.url)
       try {
         await Promise.race([
