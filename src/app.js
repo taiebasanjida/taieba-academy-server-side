@@ -36,16 +36,20 @@ export async function ensureDatabase() {
     await mongoose.connect(MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5 seconds to select server
-      socketTimeoutMS: 10000, // 10 seconds socket timeout
-      connectTimeoutMS: 5000, // 5 seconds connection timeout
+      serverSelectionTimeoutMS: 4000, // 4 seconds to select server (stricter)
+      socketTimeoutMS: 8000, // 8 seconds socket timeout
+      connectTimeoutMS: 4000, // 4 seconds connection timeout (stricter)
       maxPoolSize: 10,
       minPoolSize: 1,
+      // Reduce retry attempts for faster failure
+      retryWrites: true,
+      retryReads: true,
     })
     isDBConnected = true
     console.log(' MongoDB connected successfully')
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message)
+    isDBConnected = false // Reset flag on error
     throw error
   }
 }
