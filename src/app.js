@@ -21,13 +21,18 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true)
     
-    // In development, allow all localhost ports
-    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+    // Always allow localhost for development/testing (even in production for flexibility)
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
       return callback(null, true)
     }
     
     // Check if origin is in allowed origins
     if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    
+    // Default: allow if no origins specified (for development)
+    if (allowedOrigins.length === 0) {
       return callback(null, true)
     }
     
