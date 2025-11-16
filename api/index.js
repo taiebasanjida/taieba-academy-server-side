@@ -4,8 +4,35 @@ import app, { ensureDatabase } from '../src/app.js'
 let dbInitialized = false
 let handler = null
 
+// Helper function to set CORS headers
+function setCORSHeaders(req, res) {
+  // Get origin from request headers
+  const origin = req.headers.origin || req.headers.referer || '*'
+  
+  // Allow all origins for flexibility (app.js CORS middleware will validate)
+  // This ensures CORS headers are always present
+  res.setHeader('Access-Control-Allow-Origin', origin === '*' ? '*' : origin)
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+}
+
+// Handle OPTIONS preflight requests
+function handleOPTIONS(req, res) {
+  setCORSHeaders(req, res)
+  res.status(204).end()
+}
+
 export default async function (req, res) {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return handleOPTIONS(req, res)
+    }
+    
+    // Set CORS headers for all responses
+    setCORSHeaders(req, res)
+    
     // Fast path: Root endpoint doesn't need database or handler initialization
     if (req.url === '/' && req.method === 'GET') {
       res.setHeader('Content-Type', 'application/json')
@@ -48,6 +75,7 @@ export default async function (req, res) {
         
         // Return error response immediately - don't wait for handler
         if (!res.headersSent) {
+          // CORS headers already set at the beginning
           res.setHeader('Content-Type', 'application/json')
           return res.status(503).json({ 
             message: 'Database connection failed. Please try again in a moment.',
