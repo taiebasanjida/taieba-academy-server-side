@@ -57,10 +57,11 @@ export default async function (req, res) {
     if (req.url.startsWith('/api/') && !dbInitialized) {
       console.log('Initializing database connection for:', req.url)
       
-      // Set a very aggressive timeout (3 seconds) to avoid hitting Vercel's 10s limit
+      // Set timeout to 4.5 seconds (leaving 5.5s buffer for handler and response)
+      // This matches MongoDB timeout settings (4s) + small buffer
       const connectionPromise = ensureDatabase()
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout after 3s')), 3000)
+        setTimeout(() => reject(new Error('Database connection timeout after 4.5s')), 4500)
       )
       
       try {

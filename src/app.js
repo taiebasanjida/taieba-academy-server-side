@@ -60,9 +60,9 @@ export async function ensureDatabase() {
     await mongoose.connect(MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 2500, // 2.5 seconds to select server (very aggressive)
-      socketTimeoutMS: 5000, // 5 seconds socket timeout
-      connectTimeoutMS: 2500, // 2.5 seconds connection timeout (very aggressive)
+      serverSelectionTimeoutMS: 4000, // 4 seconds to select server (increased for Atlas free tier)
+      socketTimeoutMS: 8000, // 8 seconds socket timeout
+      connectTimeoutMS: 4000, // 4 seconds connection timeout (increased)
       maxPoolSize: 5, // Reduce pool size for faster initialization
       minPoolSize: 0, // No min pool - don't pre-connect
       // Reduce retry attempts for faster failure
@@ -71,6 +71,10 @@ export async function ensureDatabase() {
       // Disable auto-reconnect to fail faster
       bufferMaxEntries: 0,
       bufferCommands: false,
+      // Optimize for serverless/cloud
+      heartbeatFrequencyMS: 10000,
+      retryReads: true,
+      directConnection: false, // Use replica set
     })
     isDBConnected = true
     console.log(' MongoDB connected successfully')
