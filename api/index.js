@@ -26,26 +26,34 @@ export default async function (req, res) {
     }
     
     // Lazy load database connection only for API routes
+    // Use aggressive timeout and fail fast
     if (req.url.startsWith('/api/') && !dbInitialized) {
       console.log('Initializing database connection for:', req.url)
+      
+      // Set a very aggressive timeout (3 seconds) to avoid hitting Vercel's 10s limit
+      const connectionPromise = ensureDatabase()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database connection timeout after 3s')), 3000)
+      )
+      
       try {
-        // Stricter timeout: 5 seconds max (Vercel free plan has 10s limit)
-        await Promise.race([
-          ensureDatabase(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Database connection timeout')), 5000)
-          )
-        ])
+        await Promise.race([connectionPromise, timeoutPromise])
         dbInitialized = true
         console.log('Database initialized successfully')
       } catch (dbError) {
         console.error('Database connection failed:', dbError.message)
-        // Return error response immediately instead of continuing
+        
+        // Cancel the connection attempt if possible
+        connectionPromise.catch(() => {}) // Suppress unhandled promise rejection
+        
+        // Return error response immediately - don't wait for handler
         if (!res.headersSent) {
+          res.setHeader('Content-Type', 'application/json')
           return res.status(503).json({ 
             message: 'Database connection failed. Please try again in a moment.',
             error: 'Service temporarily unavailable',
-            retryAfter: 5
+            retryAfter: 3,
+            timestamp: new Date().toISOString()
           })
         }
       }
