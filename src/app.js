@@ -14,9 +14,28 @@ const allowedOrigins = process.env.CLIENT_ORIGIN
   : []
 
 const app = express()
+
+// CORS configuration
 app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    // In development, allow all localhost ports
+    if (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+      return callback(null, true)
+    }
+    
+    // Check if origin is in allowed origins
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    
+    callback(new Error('Not allowed by CORS'))
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json({ limit: '1mb' }))
 app.use(morgan('dev'))
