@@ -39,10 +39,10 @@ export default async function (req, res) {
   const requestStartTime = Date.now()
   const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   
-  // CRITICAL: Global timeout for entire request (5 seconds max for Free Tier)
+  // CRITICAL: Global timeout for entire request (8 seconds max for Free Tier)
   // This ensures we never exceed Vercel's 10 second limit
-  // Reduced to 5s to leave buffer for Vercel's own processing
-  const MAX_REQUEST_TIME = 5000 // 5 seconds - VERY aggressive
+  // 8s leaves buffer for Vercel's own processing
+  const MAX_REQUEST_TIME = 8000 // 8 seconds
   let requestTimeout = null
   
   // Set a global timeout that will force return if request takes too long
@@ -115,14 +115,14 @@ export default async function (req, res) {
         dbInitialized = true
         logPerformance('DB_REUSE', 0, { requestId })
       } else {
-        // DB not connected - try to connect with VERY aggressive timeout
+        // DB not connected - try to connect with reasonable timeout
         const connectionStart = Date.now()
         logPerformance('DB_INIT_START', 0, { requestId, url: req.url })
         try {
           await Promise.race([
             ensureDatabase(),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('DB timeout')), 500) // 500ms max - VERY aggressive
+              setTimeout(() => reject(new Error('DB timeout')), 3000) // 3 seconds - reasonable for Atlas
             ),
             timeoutPromise // Also race against global timeout
           ])
@@ -157,7 +157,7 @@ export default async function (req, res) {
         await Promise.race([
           ensureDatabase(),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Database connection timeout')), 500) // 500ms max
+            setTimeout(() => reject(new Error('Database connection timeout')), 3000) // 3 seconds - reasonable for Atlas
           ),
           timeoutPromise // Also race against global timeout
         ])

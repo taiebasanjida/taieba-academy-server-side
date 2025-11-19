@@ -97,9 +97,9 @@ export async function ensureDatabase() {
   }
 
   if (isDBConnected && mongoose.connection.readyState === 2) {
-    // Connection in progress, wait for it with VERY fast timeout
+    // Connection in progress, wait for it with reasonable timeout
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Connection timeout')), 500) // 500ms max - match api/index.js
+      const timeout = setTimeout(() => reject(new Error('Connection timeout')), 3000) // 3 seconds - reasonable for Atlas
       mongoose.connection.once('connected', () => {
         clearTimeout(timeout)
         isDBConnected = true
@@ -113,12 +113,12 @@ export async function ensureDatabase() {
   }
 
   try {
-    // ULTRA-FAST connection options for Free Tier (10s limit)
-    // Must complete in <1 second to avoid timeout
+    // Optimized connection options for Free Tier (10s limit)
+    // Reasonable timeouts for MongoDB Atlas connections (3s for connection, 4.5s for socket)
     await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 500, // 500ms - match api/index.js timeout
-      socketTimeoutMS: 1500, // 1.5 seconds
-      connectTimeoutMS: 500, // 500ms - match api/index.js timeout
+      serverSelectionTimeoutMS: 3000, // 3 seconds - reasonable for Atlas
+      socketTimeoutMS: 4500, // 4.5 seconds
+      connectTimeoutMS: 3000, // 3 seconds - reasonable for Atlas
       maxPoolSize: 1, // Single connection for serverless
       minPoolSize: 0, // Allow connection to close when idle
       retryWrites: true,
@@ -189,9 +189,9 @@ app.get('/api/enrollments', ensureDBConnection, async (req, res) => {
     }
     
     const queryStartTime = Date.now()
-    // ULTRA-FAST: Load only enrollments without course data for Free Tier
+    // Load only enrollments without course data for Free Tier
     // Client can fetch course details separately if needed
-    // VERY aggressive timeout - 1.5 seconds max (reduced for safety)
+    // Reasonable timeout - 4 seconds max for database queries
     const enrollments = await Promise.race([
       Enrollment.find()
         .sort({ createdAt: -1 })
@@ -199,7 +199,7 @@ app.get('/api/enrollments', ensureDBConnection, async (req, res) => {
         .lean()
         .select('userEmail course progress rating review completedAt createdAt updatedAt'),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 1500) // 1.5 seconds max
+        setTimeout(() => reject(new Error('Query timeout')), 4000) // 4 seconds max - reasonable for queries
       )
     ])
     const queryTime = Date.now() - queryStartTime

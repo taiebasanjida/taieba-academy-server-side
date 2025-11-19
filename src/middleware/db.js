@@ -16,11 +16,11 @@ export async function ensureDBConnection(req, res, next) {
   }
   
   try {
-    // VERY aggressive timeout for Free Tier - 500ms max
+    // Reasonable timeout for Free Tier - 3 seconds for Atlas connections
     await Promise.race([
       ensureDatabase(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('DB connection timeout')), 500) // 500ms max - VERY aggressive
+        setTimeout(() => reject(new Error('DB connection timeout')), 3000) // 3 seconds - reasonable for Atlas
       )
     ])
     next()

@@ -86,10 +86,10 @@ const myCourses = [
 }))
 
 async function seedMyCourses() {
-  const uri = process.env.MONGO_URI
+  const uri = process.env.MONGO_URL || process.env.MONGO_URI
   
   if (!uri) {
-    console.error('⚠️  MONGO_URI is not set in .env file.')
+    console.error('⚠️  MONGO_URL or MONGO_URI is not set in .env file.')
     process.exit(1)
   }
   

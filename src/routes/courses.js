@@ -83,8 +83,8 @@ router.get('/', async (req, res) => {
     if (category) query.category = category
     
     const queryStartTime = Date.now()
-    // ULTRA-FAST: Add timeout to query itself
-    // VERY aggressive timeout - 1.5 seconds max (reduced for safety)
+    // Add timeout to query itself
+    // Reasonable timeout - 4 seconds max for database queries
     const courses = await Promise.race([
       Course.find(query)
         .sort({ createdAt: -1 })
@@ -92,7 +92,7 @@ router.get('/', async (req, res) => {
         .lean()
         .select('title imageUrl price duration category description isFeatured ratingAverage ratingCount instructor createdAt updatedAt'),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 1500) // 1.5 seconds max - match enrollments
+        setTimeout(() => reject(new Error('Query timeout')), 4000) // 4 seconds max - reasonable for queries
       )
     ])
     const queryTime = Date.now() - queryStartTime
@@ -145,7 +145,7 @@ router.get('/mine', async (req, res) => {
         .lean()
         .select('title imageUrl price duration category description isFeatured ratingAverage ratingCount instructor createdAt updatedAt'),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 2500)
+        setTimeout(() => reject(new Error('Query timeout')), 4000) // 4 seconds - reasonable for queries
       )
     ])
     
@@ -176,7 +176,7 @@ router.get('/count', async (req, res) => {
     const count = await Promise.race([
       Course.countDocuments(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 2000)
+        setTimeout(() => reject(new Error('Query timeout')), 4000) // 4 seconds - reasonable for queries
       )
     ])
     
@@ -212,7 +212,7 @@ router.get('/:id', async (req, res) => {
     const course = await Promise.race([
       Course.findById(id).lean(),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 2000)
+        setTimeout(() => reject(new Error('Query timeout')), 4000) // 4 seconds - reasonable for queries
       )
     ])
     
@@ -282,7 +282,7 @@ router.get('/:id/ratings', async (req, res) => {
           }
         ]),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Summary query timeout')), 2000)
+          setTimeout(() => reject(new Error('Summary query timeout')), 4000) // 4 seconds - reasonable for queries
         )
       ]),
       Promise.race([
@@ -296,7 +296,7 @@ router.get('/:id/ratings', async (req, res) => {
           }
         ]),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Breakdown query timeout')), 2000)
+          setTimeout(() => reject(new Error('Breakdown query timeout')), 4000) // 4 seconds - reasonable for queries
         )
       ]),
       Promise.race([
@@ -310,7 +310,7 @@ router.get('/:id/ratings', async (req, res) => {
           .lean()
           .select('rating review userEmail updatedAt'),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Reviews query timeout')), 2000)
+          setTimeout(() => reject(new Error('Reviews query timeout')), 4000) // 4 seconds - reasonable for queries
         )
       ])
     ])
