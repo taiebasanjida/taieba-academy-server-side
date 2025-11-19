@@ -3,11 +3,6 @@
   "routes": [
     { "src": "/(.*)", "dest": "api/index.js" }
   ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 10
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   }
