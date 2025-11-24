@@ -11,3 +11,7 @@ yarn-error.log*
 .vercel/*
 
 .vercel
+
+# Files with secrets
+add-remaining-env.sh
+vercel-env-values.txt

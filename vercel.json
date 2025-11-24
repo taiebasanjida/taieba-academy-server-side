@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "/(.*)", "dest": "api/index.js" }
-  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
   "env": {
     "NODE_ENV": "production"
   }

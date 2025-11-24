@@ -2,7 +2,6 @@ import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
-import mongoose from 'mongoose'
 import coursesRouter from './routes/courses.js'
 import enrollmentsRouter from './routes/enrollments.js'
 import { authMiddleware } from './middleware/auth.js'
@@ -48,17 +47,7 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }))
 app.use(morgan('dev'))
 
-const MONGO_URI = process.env.MONGO_URL || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/db_taieba_academy'
-
-// Log connection string (without password) for debugging
-if (MONGO_URI.includes('mongodb+srv://')) {
-  const uriWithoutPassword = MONGO_URI.replace(/mongodb\+srv:\/\/[^:]+:[^@]+@/, 'mongodb+srv://***:***@')
-  console.log('🔗 MongoDB URI:', uriWithoutPassword)
-} else {
-  console.log('🔗 MongoDB URI:', MONGO_URI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'))
-}
-
-let isDBConnected = false
+import { ensureDatabase } from './lib/database.js'
 
 // Simple in-memory cache for GET requests (Free Tier optimization)
 const cache = new Map()
@@ -87,59 +76,6 @@ function setCachedResponse(key, data) {
     cache.delete(firstKey)
   }
   cache.set(key, { data, timestamp: Date.now() })
-}
-
-export async function ensureDatabase() {
-  // Fast path: Already connected
-  if (mongoose.connection.readyState === 1) {
-    isDBConnected = true
-    return
-  }
-
-  if (isDBConnected && mongoose.connection.readyState === 2) {
-    // Connection in progress, wait for it with reasonable timeout
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Connection timeout')), 3000) // 3 seconds - reasonable for Atlas
-      mongoose.connection.once('connected', () => {
-        clearTimeout(timeout)
-        isDBConnected = true
-        resolve()
-      })
-      mongoose.connection.once('error', (err) => {
-        clearTimeout(timeout)
-        reject(err)
-      })
-    })
-  }
-
-  try {
-    // Optimized connection options for Free Tier (10s limit)
-    // Reasonable timeouts for MongoDB Atlas connections (3s for connection, 4.5s for socket)
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 3000, // 3 seconds - reasonable for Atlas
-      socketTimeoutMS: 4500, // 4.5 seconds
-      connectTimeoutMS: 3000, // 3 seconds - reasonable for Atlas
-      maxPoolSize: 1, // Single connection for serverless
-      minPoolSize: 0, // Allow connection to close when idle
-      retryWrites: true,
-      w: 'majority',
-      // Optimize for serverless
-      bufferCommands: false,
-      // Additional optimizations for Free Tier
-      maxIdleTimeMS: 10000,
-      heartbeatFrequencyMS: 10000,
-      // Disable unnecessary features
-      autoIndex: false,
-      autoCreate: false,
-      directConnection: false,
-    })
-    isDBConnected = true
-    console.log('✅ MongoDB connected successfully')
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message)
-    isDBConnected = false // Reset flag on error
-    throw error
-  }
 }
 
 // Enhanced logging for Vercel Dashboard

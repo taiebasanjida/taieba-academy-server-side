@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import { ensureDatabase } from '../app.js'
+import { ensureDatabase } from '../lib/database.js'
 
 /**
  * Middleware to ensure database connection before handling API requests
