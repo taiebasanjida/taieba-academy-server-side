@@ -56,7 +56,13 @@ async function listCourses(req, res) {
 
 async function createCourse(req, res) {
   const user = await requireUser(req)
+  
+  // Debug logging
+  console.log('🔍 [COURSES/CREATE] User email:', user?.email)
+  console.log('🔍 [COURSES/CREATE] User object:', user)
+  
   if (!user?.email) {
+    console.error('❌ [COURSES/CREATE] No user email found!')
     return res.status(401).json({ message: 'Unauthorized' })
   }
 
@@ -65,10 +71,25 @@ async function createCourse(req, res) {
     return res.status(400).json({ message: 'Title is required' })
   }
 
-  const course = await Course.create({
+  // Normalize email to lowercase for consistency
+  const normalizedEmail = user.email.toLowerCase().trim()
+  
+  const courseData = {
     ...body,
-    instructor: body.instructor || { email: user.email },
-  })
+    instructor: {
+      ...(body.instructor || {}),
+      email: normalizedEmail,
+      name: body.instructor?.name || user.name,
+      photoURL: body.instructor?.photoURL || user.picture || user.photoURL
+    },
+  }
+  
+  console.log('📝 [COURSES/CREATE] Creating course with instructor email:', courseData.instructor.email)
+  
+  const course = await Course.create(courseData)
+  
+  console.log(`✅ [COURSES/CREATE] Created course ${course._id} for instructor ${course.instructor.email}`)
+  console.log('✅ [COURSES/CREATE] Course instructor email:', course.instructor?.email)
 
   return res.status(201).json(course)
 }

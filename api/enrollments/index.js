@@ -58,16 +58,35 @@ async function listEnrollments(req, res) {
 async function createEnrollment(req, res) {
   const user = await requireUser(req)
   const { courseId } = req.body || {}
+  
+  // Debug logging
+  console.log('🔍 [ENROLLMENTS/CREATE] User email:', user.email)
+  console.log('🔍 [ENROLLMENTS/CREATE] Course ID:', courseId)
+  
+  if (!user.email) {
+    console.error('❌ [ENROLLMENTS/CREATE] No user email found!')
+    return res.status(401).json({ message: 'Unauthorized - No user email' })
+  }
+  
   if (!courseId) {
     return res.status(400).json({ message: 'courseId is required' })
   }
 
-  const existing = await Enrollment.findOne({ userEmail: user.email, course: courseId }).lean()
+  // Normalize email to lowercase for consistency
+  const normalizedEmail = user.email.toLowerCase().trim()
+
+  const existing = await Enrollment.findOne({ 
+    userEmail: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    course: courseId 
+  }).lean()
   if (existing) {
+    console.log(`✅ [ENROLLMENTS/CREATE] Existing enrollment found for ${normalizedEmail}`)
     return res.status(200).json(existing)
   }
 
-  const enrollment = await Enrollment.create({ userEmail: user.email, course: courseId })
+  const enrollment = await Enrollment.create({ userEmail: normalizedEmail, course: courseId })
+  console.log(`✅ [ENROLLMENTS/CREATE] Created enrollment for ${user.email} with course ${courseId}`)
+  console.log('✅ [ENROLLMENTS/CREATE] Enrollment userEmail:', enrollment.userEmail)
   return res.status(201).json(enrollment)
 }
 

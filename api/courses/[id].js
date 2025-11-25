@@ -65,8 +65,17 @@ async function updateCourse(req, res) {
   if (!course) {
     return res.status(404).json({ message: 'Not found' })
   }
-  if (course.instructor?.email !== user.email) {
+  
+  // Case-insensitive email comparison
+  const userEmail = user.email?.toLowerCase().trim()
+  const courseEmail = course.instructor?.email?.toLowerCase().trim()
+  if (courseEmail !== userEmail) {
     return res.status(403).json({ message: 'Forbidden' })
+  }
+
+  // Normalize email in instructor data if provided
+  if (req.body?.instructor?.email) {
+    req.body.instructor.email = req.body.instructor.email.toLowerCase().trim()
   }
 
   Object.assign(course, req.body || {})
@@ -85,7 +94,11 @@ async function deleteCourse(req, res) {
   if (!course) {
     return res.status(404).json({ message: 'Not found' })
   }
-  if (course.instructor?.email !== user.email) {
+  
+  // Case-insensitive email comparison
+  const userEmail = user.email?.toLowerCase().trim()
+  const courseEmail = course.instructor?.email?.toLowerCase().trim()
+  if (courseEmail !== userEmail) {
     return res.status(403).json({ message: 'Forbidden' })
   }
 

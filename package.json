@@ -8,7 +8,9 @@
     "dev": "node src/index.js",
     "start": "node src/index.js",
     "seed": "node scripts/seedCourses.js",
-    "seed:my": "node scripts/seedMyCourses.js"
+    "seed:my": "node scripts/seedMyCourses.js",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel"
   },
   "dependencies": {
     "cors": "^2.8.5",

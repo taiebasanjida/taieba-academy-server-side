@@ -13,10 +13,28 @@ export default createHandler(async (req, res) => {
   await connectToDatabase()
   const user = await requireUser(req)
 
-  const enrollments = await Enrollment.find({ userEmail: user.email })
+  // Debug logging
+  console.log('🔍 [ENROLLMENTS/MINE] User email:', user.email)
+  console.log('🔍 [ENROLLMENTS/MINE] User object:', { email: user.email, uid: user.uid, sub: user.sub })
+
+  if (!user.email) {
+    console.error('❌ [ENROLLMENTS/MINE] No user email found!')
+    return res.status(401).json({ message: 'Unauthorized - No user email' })
+  }
+
+  // Normalize email to lowercase for case-insensitive matching
+  const normalizedEmail = user.email.toLowerCase().trim()
+
+  // Use case-insensitive regex for email matching
+  const enrollments = await Enrollment.find({ 
+    userEmail: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+  })
     .sort({ createdAt: -1 })
     .lean()
     .select('userEmail course progress rating review completedAt createdAt updatedAt')
+
+  console.log(`📚 [ENROLLMENTS/MINE] Found ${enrollments.length} enrollments for ${user.email}`)
+  console.log('📚 [ENROLLMENTS/MINE] Enrollment userEmails:', enrollments.map(e => e.userEmail))
 
   if (enrollments.length === 0) {
     return res.status(200).json([])
@@ -33,6 +51,7 @@ export default createHandler(async (req, res) => {
     course: enrollment.course ? courseMap.get(enrollment.course.toString()) || null : null,
   }))
 
+  console.log(`✅ [ENROLLMENTS/MINE] Returning ${enriched.length} enriched enrollments for ${user.email}`)
   res.status(200).json(enriched)
 })
 

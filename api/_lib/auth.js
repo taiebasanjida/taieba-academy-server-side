@@ -52,18 +52,30 @@ export async function getOptionalUser(req) {
 export async function requireUser(req) {
   const token = extractToken(req)
   if (!token) {
+    console.error('[AUTH] No token found in request')
     throw Object.assign(new Error('Unauthorized'), { statusCode: 401 })
   }
   try {
     const decoded = await verifyToken(token)
+    console.log('[AUTH] Decoded token:', { 
+      email: decoded?.email, 
+      uid: decoded?.uid, 
+      sub: decoded?.sub,
+      hasEmail: !!decoded?.email 
+    })
+    
     if (decoded && decoded.email) {
       req.user = decoded
+      console.log('[AUTH] User authenticated:', decoded.email)
       return decoded
+    } else {
+      console.error('[AUTH] Token decoded but no email found:', decoded)
     }
   } catch (error) {
     console.error('[AUTH] Token verification error:', error.message)
     throw Object.assign(new Error('Invalid or expired token'), { statusCode: 401 })
   }
+  console.error('[AUTH] No user email in token')
   throw Object.assign(new Error('Unauthorized'), { statusCode: 401 })
 }
 
